@@ -1,5 +1,7 @@
 import 'package:employee_management/data/mock/mock_employee.dart';
+import 'package:employee_management/presentation/employee/bloc/employee_cubit.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 
 class EmployeeListScreen extends StatefulWidget {
@@ -14,6 +16,8 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
   DateTime datePicked = DateTime.now();
   final TextEditingController _controller = TextEditingController();
   final FocusNode _focusNode = FocusNode();
+
+  late EmployeeCubit employeeCubit;
 
   Future<void> _dialogBuilder(BuildContext context) {
     return showDialog(
@@ -34,60 +38,84 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
   }
 
   @override
+  void initState() {
+    employeeCubit = EmployeeCubit();
+    employeeCubit.getEmployeeList();
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    employeeCubit.close();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      child: Column(
-        children: [
-          SizedBox(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: SizedBox(
-                    height: 50,
-                    child: TextField(
-                      controller: _controller,
-                      focusNode: _focusNode,
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        hintText: 'Due Date',
+    return BlocProvider(
+      create: (context) => employeeCubit,
+      child: SizedBox(
+        child: Column(
+          children: [
+            SizedBox(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: SizedBox(
+                      height: 50,
+                      child: TextField(
+                        controller: _controller,
+                        focusNode: _focusNode,
+                        decoration: const InputDecoration(
+                          border: OutlineInputBorder(),
+                          hintText: 'Due Date',
+                        ),
+                        onTap: () {
+                          _dialogBuilder(context);
+                        },
                       ),
-                      onTap: () {
-                        _dialogBuilder(context);
-                      },
                     ),
                   ),
-                ),
-                const SizedBox(
-                  width: 20,
-                ),
-                OutlinedButton(
-                    onPressed: () {
-                      // _pickFiles();
-                      widget.onTapButton().call();
-                    },
-                    child: const Text('Add Employee')),
-              ],
+                  const SizedBox(
+                    width: 20,
+                  ),
+                  OutlinedButton(
+                      onPressed: () {
+                        // _pickFiles();
+                        widget.onTapButton().call();
+                      },
+                      child: const Text('Add Employee')),
+                ],
+              ),
             ),
-          ),
-          Expanded(
-            child: SingleChildScrollView(
+            Expanded(
               child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: _buildTableEmployee()),
+                child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: _buildTableEmployee()),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildTableEmployee() {
     return DataTable(
-      columnSpacing: 300,
+      columnSpacing: 120,
       horizontalMargin: 100,
       columns: const <DataColumn>[
+        DataColumn(
+          label: Expanded(
+            child: Text(
+              'Employee ID',
+              style: TextStyle(fontStyle: FontStyle.italic),
+            ),
+          ),
+        ),
         DataColumn(
           label: Expanded(
             child: Text(
@@ -99,7 +127,7 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
         DataColumn(
           label: Expanded(
             child: Text(
-              'Age',
+              'Branch ID',
               style: TextStyle(fontStyle: FontStyle.italic),
             ),
           ),
@@ -107,7 +135,7 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
         DataColumn(
           label: Expanded(
             child: Text(
-              'Position',
+              'Position ID',
               style: TextStyle(fontStyle: FontStyle.italic),
             ),
           ),
@@ -115,20 +143,37 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
         DataColumn(
           label: Expanded(
             child: Text(
-              'Branch',
+              'Contract Start Date',
+              style: TextStyle(fontStyle: FontStyle.italic),
+            ),
+          ),
+        ),
+        DataColumn(
+          label: Expanded(
+            child: Text(
+              'Contract End Date',
               style: TextStyle(fontStyle: FontStyle.italic),
             ),
           ),
         ),
       ],
       rows: List<DataRow>.generate(
-        mockDataEmployees.length,
+        employeeCubit.employees.length,
         (int index) => DataRow(
           cells: <DataCell>[
-            DataCell(Text(mockDataEmployees[index]['name'] ?? 'empty')),
-            DataCell(Text(mockDataEmployees[index]['age'] ?? 'empty')),
-            DataCell(Text(mockDataEmployees[index]['position'] ?? 'empty')),
-            DataCell(Text(mockDataEmployees[index]['branch'] ?? 'empty')),
+            DataCell(Text(employeeCubit.employees[index].employeeId ?? '-')),
+            DataCell(Text(employeeCubit.employees[index].employeeName ?? '-')),
+            DataCell(Text(employeeCubit.employees[index].branchId ?? '-')),
+            DataCell(Text(employeeCubit.employees[index].positionId ?? '-')),
+            DataCell(Text(employeeCubit.employees[index].contractStartDate !=
+                    null
+                ? DateFormat('yyyy-MM-dd')
+                    .format(employeeCubit.employees[index].contractStartDate!)
+                : '-')),
+            DataCell(Text(employeeCubit.employees[index].contractEndDate != null
+                ? DateFormat('yyyy-MM-dd')
+                    .format(employeeCubit.employees[index].contractEndDate!)
+                : '-')),
           ],
         ),
       ),
